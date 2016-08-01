@@ -361,6 +361,7 @@ void OdometryROS::processData(const SensorData & data, const ros::Time & stamp)
 	rtabmap::Transform pose = odometry_->process(dataCpy, guess, &info);
 	if(!pose.isNull())
 	{
+		// update reset current count to user defined count down whenever odom update;
 		resetCurrentCount_ = resetCountdown_;
 
 		//*********************
@@ -376,7 +377,7 @@ void OdometryROS::processData(const SensorData & data, const ros::Time & stamp)
 		{
 			tfBroadcaster_.sendTransform(poseMsg);
 		}
-
+		// publish odometry if subscribed
 		if(odomPub_.getNumSubscribers())
 		{
 			//next, we'll publish the odometry message over ROS
@@ -425,7 +426,7 @@ void OdometryROS::processData(const SensorData & data, const ros::Time & stamp)
 			odomPub_.publish(odom);
 		}
 
-		// local map / reference frame
+		// publish odometry local map if using F2M and subscribed
 		if(odomLocalMap_.getNumSubscribers() && odometry_->isF2M())
 		{
 			pcl::PointCloud<pcl::PointXYZ> cloud;
@@ -441,6 +442,7 @@ void OdometryROS::processData(const SensorData & data, const ros::Time & stamp)
 			odomLocalMap_.publish(cloudMsg);
 		}
 
+		// publish odometry last frame if subscribed
 		if(odomLastFrame_.getNumSubscribers())
 		{
 			// check which type of Odometry is using
@@ -488,6 +490,7 @@ void OdometryROS::processData(const SensorData & data, const ros::Time & stamp)
 			}
 		}
 	}
+	// if publish_null_when_lost set to true then publish null.
 	else if(publishNullWhenLost_)
 	{
 		//NODELET_WARN( "Odometry lost!");
@@ -514,6 +517,7 @@ void OdometryROS::processData(const SensorData & data, const ros::Time & stamp)
 		odomPub_.publish(odom);
 	}
 
+	// if can't track the pose and user assigned reset count down.
 	if(pose.isNull() && resetCurrentCount_ > 0)
 	{
 		NODELET_WARN( "Odometry lost! Odometry will be reset after next %d consecutive unsuccessful odometry updates...", resetCurrentCount_);
